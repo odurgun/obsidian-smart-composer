@@ -122,3 +122,41 @@ export function openMarkdownFile(
     })
   }
 }
+
+export function insertMessageToCursor(app: App, content: string): void {
+  // Try to find any markdown editor in the workspace
+  const markdownLeaves = app.workspace.getLeavesOfType('markdown')
+
+  for (const leaf of markdownLeaves) {
+    if (leaf.view instanceof MarkdownView && leaf.view.editor) {
+      const editor = leaf.view.editor
+      const selection = editor.getSelection()
+
+      if (selection) {
+        // Replace selection with content
+        editor.replaceSelection(content)
+      } else {
+        // Insert at cursor position
+        const cursor = editor.getCursor()
+        editor.replaceRange(content, cursor, cursor)
+      }
+      return
+    }
+  }
+
+  // If no markdown editor found, try the active leaf as last resort
+  const activeLeaf = app.workspace.activeLeaf
+
+  if (activeLeaf?.view instanceof MarkdownView && activeLeaf.view.editor) {
+    const editor = activeLeaf.view.editor
+    const selection = editor.getSelection()
+
+    if (selection) {
+      editor.replaceSelection(content)
+    } else {
+      const cursor = editor.getCursor()
+      editor.replaceRange(content, cursor, cursor)
+    }
+    return
+  }
+}

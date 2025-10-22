@@ -1,7 +1,8 @@
 import * as Tooltip from '@radix-ui/react-tooltip'
-import { Check, CopyIcon } from 'lucide-react'
+import { Check, ClipboardPaste, CopyIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
+import { useApp } from '../../contexts/app-context'
 import {
   AssistantToolMessageGroup,
   ChatAssistantMessage,
@@ -9,9 +10,54 @@ import {
 import { ChatModel } from '../../types/chat-model.types'
 import { ResponseUsage } from '../../types/llm/response'
 import { calculateLLMCost } from '../../utils/llm/price-calculator'
+import { insertMessageToCursor } from '../../utils/obsidian'
 
 import LLMResponseInfoPopover from './LLMResponseInfoPopover'
 import { getToolMessageContent } from './ToolMessage'
+
+function InsertButton({ messages }: { messages: AssistantToolMessageGroup }) {
+  const app = useApp()
+
+  const content = useMemo(() => {
+    return messages
+      .map((message) => {
+        switch (message.role) {
+          case 'assistant':
+            return message.content === '' ? null : message.content
+          case 'tool':
+            return getToolMessageContent(message)
+        }
+      })
+      .filter(Boolean)
+      .join('\n\n')
+  }, [messages])
+
+  const handleInsert = () => {
+    if (content.trim()) {
+      insertMessageToCursor(app, content)
+    }
+  }
+
+  return (
+    <Tooltip.Provider delayDuration={0}>
+      <Tooltip.Root>
+        <Tooltip.Trigger asChild>
+          <button
+            onClick={handleInsert}
+            className="clickable-icon"
+          >
+            <ClipboardPaste size={12} />
+          </button>
+        </Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Content className="smtcmp-tooltip-content">
+            Insert message
+          </Tooltip.Content>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+    </Tooltip.Provider>
+  )
+}
 
 function CopyButton({ messages }: { messages: AssistantToolMessageGroup }) {
   const [copied, setCopied] = useState(false)
@@ -130,6 +176,7 @@ export default function AssistantToolMessageGroupActions({
 }) {
   return (
     <div className="smtcmp-assistant-message-actions">
+      <InsertButton messages={messages} />
       <LLMResponseInfoButton messages={messages} />
       <CopyButton messages={messages} />
     </div>
